@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ITEM_CATEGORIES } from "@/lib/constants";
+import { rejectAllPendingClaimsTx } from "@/lib/claims-flow";
 
 const CATEGORY_LIST: string[] = [...ITEM_CATEGORIES];
 
@@ -38,8 +39,8 @@ export async function createItem(
   const location = String(formData.get("location") || "").trim();
   const dateStr = String(formData.get("date") || "");
   const type = String(formData.get("type") || "");
-  const verificationQuestion = String(formData.get("verificationQuestion") || "").trim();
-  const verificationAnswer = String(formData.get("verificationAnswer") || "").trim();
+  const verificationQuestionRaw = String(formData.get("verificationQuestion") || "").trim();
+  const verificationAnswerRaw = String(formData.get("verificationAnswer") || "").trim();
 
   if (!title || !description || !location || !dateStr || !type) {
     return { error: "Please fill in all required fields." };
@@ -73,6 +74,9 @@ export async function createItem(
     select: { id: true },
   });
 
+  const verificationQuestion = type === "found" ? verificationQuestionRaw || null : null;
+  const verificationAnswer = type === "found" ? verificationAnswerRaw || null : null;
+
   await prisma.item.create({
     data: {
       title,
@@ -84,8 +88,8 @@ export async function createItem(
       status: autoApproveEnabled ? "approved" : "pending",
       image: imagePath,
       images: uploaded.length ? JSON.stringify(uploaded) : null,
-      verificationQuestion: verificationQuestion || null,
-      verificationAnswer: verificationAnswer || null,
+      verificationQuestion,
+      verificationAnswer,
       userId,
     },
   });
@@ -114,7 +118,7 @@ export async function deleteMyItem(formData: FormData) {
   revalidatePath("/admin/items");
 }
 
-export async function markItemReturned(formData: FormData) {
+export async function markItemResolvedWithoutClaim(formData: FormData) {
   const userId = await requireSessionUserId();
   const id = String(formData.get("id") || "");
   if (!id) return;
@@ -124,27 +128,55 @@ export async function markItemReturned(formData: FormData) {
   });
   if (!item) return;
 
-  await prisma.item.update({
-    where: { id },
-    data: { status: "returned" },
-  });
-  await prisma.successStory.upsert({
-    where: { itemId_userId: { itemId: id, userId } },
-    update: {},
-    create: { itemId: id, userId },
+  await prisma.$transaction(async (tx) => {
+    await tx.item.update({ where: { id }, data: { status: "returned" } });
+    await rejectAllPendingClaimsTx(tx, id, {
+      type: "claim_rejected",
+      message: `Your claim on "${item.title}" was closed because the poster resolved the item without a claim.`,
+    });
+    await tx.successStory.upsert({
+      where: { itemId_userId: { itemId: id, userId } },
+      update: {},
+      create: { itemId: id, userId },
+    });
   });
   revalidatePath("/dashboard/my-items");
   revalidatePath("/dashboard");
   revalidatePath("/stories");
   revalidatePath("/");
   revalidatePath(`/items/${id}`);
+  revalidatePath("/dashboard/notifications");
+  revalidatePath("/dashboard/my-claims");
 }
 
-export async function saveSuccessStory(formData: FormData) {
+export type SuccessStoryFormState = { error: string | null; success: string | null };
+
+export async function saveSuccessStory(
+  _prev: SuccessStoryFormState,
+  formData: FormData,
+): Promise<SuccessStoryFormState> {
   const userId = await requireSessionUserId();
   const itemId = String(formData.get("itemId") || "");
   const message = String(formData.get("message") || "").trim();
-  if (!itemId) return;
+  if (!itemId) return { error: "Missing item.", success: null };
+
+  const item = await prisma.item.findUnique({ where: { id: itemId } });
+  if (!item) return { error: "Item not found.", success: null };
+  if (item.status !== "returned") {
+    return { error: "You can only share a story after the item is returned.", success: null };
+  }
+
+  const accepted = await prisma.claim.findFirst({
+    where: { itemId, status: "accepted", claimantId: userId },
+    select: { id: true },
+  });
+  const isPoster = item.userId === userId;
+  const isRightParty = item.type === "lost" ? isPoster : Boolean(accepted);
+
+  if (!isRightParty) {
+    return { error: "You are not eligible to write the reunion story for this listing.", success: null };
+  }
+
   await prisma.successStory.upsert({
     where: { itemId_userId: { itemId, userId } },
     update: { message: message || null },
@@ -153,30 +185,7 @@ export async function saveSuccessStory(formData: FormData) {
   revalidatePath("/stories");
   revalidatePath("/");
   revalidatePath("/dashboard/my-items");
+  revalidatePath(`/items/${itemId}`);
+  return { error: null, success: "Story saved." };
 }
 
-export async function markItemReturnedWithStory(
-  _prev: { error: string | null; success: string | null },
-  formData: FormData,
-) {
-  const userId = await requireSessionUserId();
-  const id = String(formData.get("id") || "");
-  const message = String(formData.get("story") || "").trim();
-  if (!id) return { error: "Invalid item.", success: null };
-  const item = await prisma.item.findFirst({
-    where: { id, userId, status: "approved" },
-  });
-  if (!item) return { error: "Item not eligible.", success: null };
-  await prisma.$transaction([
-    prisma.item.update({ where: { id }, data: { status: "returned" } }),
-    prisma.successStory.upsert({
-      where: { itemId_userId: { itemId: id, userId } },
-      update: { message: message || null },
-      create: { itemId: id, userId, message: message || null },
-    }),
-  ]);
-  revalidatePath("/dashboard/my-items");
-  revalidatePath("/stories");
-  revalidatePath("/");
-  return { error: null, success: "Returned marked and story saved." };
-}

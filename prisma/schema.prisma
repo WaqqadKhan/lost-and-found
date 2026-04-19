@@ -21,6 +21,7 @@ model User {
   claims        Claim[]
   comments      Comment[]
   successStories SuccessStory[]
+  reunionViews  ReunionView[]
 }
 
 model Item {
@@ -41,6 +42,7 @@ model Item {
   claims      Claim[]
   comments    Comment[]
   successStories SuccessStory[]
+  reunionViews ReunionView[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -88,6 +90,17 @@ model SuccessStory {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   message   String?
+  createdAt DateTime @default(now())
+
+  @@unique([itemId, userId])
+}
+
+model ReunionView {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@unique([itemId, userId])

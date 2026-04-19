@@ -60,17 +60,24 @@ export function ItemImageGallery({
 
 export function ClaimForm({
   itemId,
+  itemType,
   verificationQuestion,
 }: {
   itemId: string;
+  itemType: "lost" | "found";
   verificationQuestion: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [state, action] = useFormState(submitClaim, initialClaim);
+  const ctaLabel = itemType === "found" ? "This is Mine" : "I Found This";
+  const messagePlaceholder =
+    itemType === "found"
+      ? "Describe the item to prove ownership (color, contents, distinguishing marks)"
+      : "Describe where and when you found it, and any details about the item";
   return (
     <div className="space-y-3">
       <Button type="button" onClick={() => setOpen((v) => !v)}>
-        This is Mine / I Found the Owner
+        {ctaLabel}
       </Button>
       {open ? (
         <form action={action} className="space-y-2 rounded-lg border p-3">
@@ -80,9 +87,9 @@ export function ClaimForm({
           <Textarea
             name="message"
             required
-            placeholder="Describe the item to prove it's yours (color, contents, distinguishing marks)"
+            placeholder={messagePlaceholder}
           />
-          {verificationQuestion ? (
+          {itemType === "found" && verificationQuestion ? (
             <div className="space-y-1">
               <p className="text-xs font-semibold text-muted-foreground">Verification question</p>
               <p className="text-sm">{verificationQuestion}</p>

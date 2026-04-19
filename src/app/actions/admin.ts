@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ITEM_CATEGORIES } from "@/lib/constants";
+import { rejectAllPendingClaimsTx } from "@/lib/claims-flow";
 
 const CATEGORY_LIST: string[] = [...ITEM_CATEGORIES];
 
@@ -83,6 +84,41 @@ export async function deleteItemAdmin(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/notifications");
   revalidatePath("/search");
+}
+
+export async function markItemReturnedAdmin(formData: FormData) {
+  await requireAdminId();
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+
+  const existing = await prisma.item.findUnique({ where: { id } });
+  if (!existing || existing.status === "returned") return;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.item.update({ where: { id }, data: { status: "returned" } });
+    await rejectAllPendingClaimsTx(tx, id, {
+      type: "claim_rejected",
+      message: `Your claim on "${existing.title}" was closed because the item was marked returned by an admin.`,
+    });
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: existing.userId,
+      itemId: id,
+      type: "approved",
+      message: `An admin marked your item "${existing.title}" as returned.`,
+    },
+  });
+
+  revalidatePath("/admin/items");
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/notifications");
+  revalidatePath("/dashboard/my-items");
+  revalidatePath("/dashboard/my-claims");
+  revalidatePath(`/items/${id}`);
 }
 
 export async function deleteUserAdmin(formData: FormData) {

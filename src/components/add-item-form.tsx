@@ -29,6 +29,9 @@ export function AddItemForm({ defaultType = "lost" }: { defaultType?: string }) 
   const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
   const [filesCount, setFilesCount] = useState(0);
+  const [type, setType] = useState<"lost" | "found">(defaultType === "found" ? "found" : "lost");
+  const [verificationQuestion, setVerificationQuestion] = useState("");
+  const [verificationAnswer, setVerificationAnswer] = useState("");
 
   const progress =
     (title.trim() ? 20 : 0) +
@@ -147,7 +150,12 @@ export function AddItemForm({ defaultType = "lost" }: { defaultType?: string }) 
               name="type"
               value="lost"
               required
-              defaultChecked={defaultType !== "found"}
+              checked={type === "lost"}
+              onChange={() => {
+                setType("lost");
+                setVerificationQuestion("");
+                setVerificationAnswer("");
+              }}
             />
             Lost
           </label>
@@ -156,7 +164,8 @@ export function AddItemForm({ defaultType = "lost" }: { defaultType?: string }) 
               type="radio"
               name="type"
               value="found"
-              defaultChecked={defaultType === "found"}
+              checked={type === "found"}
+              onChange={() => setType("found")}
             />
             Found
           </label>
@@ -175,18 +184,33 @@ export function AddItemForm({ defaultType = "lost" }: { defaultType?: string }) 
         />
       </div>
 
-      <div className="space-y-2 rounded-lg border p-3">
-        <Label htmlFor="verificationQuestion">Security question (optional)</Label>
-        <p className="text-xs text-muted-foreground">
-          Set a question only the true owner would know.
-        </p>
-        <Input
-          id="verificationQuestion"
-          name="verificationQuestion"
-          placeholder="Example: What sticker is on the back of the laptop?"
-        />
-        <Input id="verificationAnswer" name="verificationAnswer" placeholder="Expected answer" />
-      </div>
+      {type === "found" ? (
+        <div className="space-y-2 rounded-lg border p-3">
+          <Label htmlFor="verificationQuestion">Verification Question (Optional)</Label>
+          <p className="text-xs text-muted-foreground">
+            Set a question to verify the true owner. Example: What is the phone&apos;s lock screen wallpaper?
+          </p>
+          <Input
+            id="verificationQuestion"
+            name="verificationQuestion"
+            placeholder="Example: What sticker is on the back of the laptop?"
+            value={verificationQuestion}
+            onChange={(e) => setVerificationQuestion(e.target.value)}
+          />
+          <Input
+            id="verificationAnswer"
+            name="verificationAnswer"
+            placeholder="Expected answer"
+            value={verificationAnswer}
+            onChange={(e) => setVerificationAnswer(e.target.value)}
+          />
+        </div>
+      ) : (
+        <>
+          <input type="hidden" name="verificationQuestion" value="" />
+          <input type="hidden" name="verificationAnswer" value="" />
+        </>
+      )}
 
       <SubmitButton />
     </form>

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge, TypeBadge } from "@/components/badges";
 import { cn } from "@/lib/utils";
-import { ReturnItemDialog } from "@/components/return-item-dialog";
+import { ResolvedWithoutClaimForm } from "@/components/resolved-without-claim-form";
 import { formatTimeAgo, isWithinHours } from "@/lib/time";
 import { EmptyState } from "@/components/empty-state";
 
@@ -22,6 +22,16 @@ export default async function MyItemsPage() {
   const items = await prisma.item.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
+    include: {
+      claims: { select: { status: true } },
+    },
+  });
+
+  const rows = [...items].sort((a, b) => {
+    const aPending = a.claims.some((c) => c.status === "pending") ? 1 : 0;
+    const bPending = b.claims.some((c) => c.status === "pending") ? 1 : 0;
+    if (aPending !== bPending) return bPending - aPending;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   return (
@@ -58,13 +68,24 @@ export default async function MyItemsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => {
+              {rows.map((item) => {
                 const when = formatTimeAgo(item.createdAt);
+                const claimsCount = item.claims.length;
+                const hasPendingClaims = item.claims.some((c) => c.status === "pending");
                 return (
-                  <TableRow key={item.id}>
+                  <TableRow
+                    key={item.id}
+                    className={cn(hasPendingClaims ? "bg-yellow-50/60" : "")}
+                  >
                     <TableCell className="max-w-[220px] whitespace-normal font-medium">
                       <span className="inline-flex items-center gap-2">
-                        {item.title}
+                        <span>
+                          {item.title}
+                          {claimsCount ? <span className="text-muted-foreground"> ({claimsCount} claims)</span> : null}
+                        </span>
+                        {hasPendingClaims ? (
+                          <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs text-white">CLAIMS</span>
+                        ) : null}
                         {isWithinHours(item.createdAt, 24) ? (
                           <span className="rounded-full bg-blue-500 px-2 py-0.5 text-xs text-white">NEW</span>
                         ) : null}
@@ -85,9 +106,7 @@ export default async function MyItemsPage() {
                         >
                           View
                         </Link>
-                        {item.status === "approved" ? (
-                          <ReturnItemDialog itemId={item.id} />
-                        ) : null}
+                        {item.status === "approved" ? <ResolvedWithoutClaimForm itemId={item.id} /> : null}
                         <form action={deleteMyItem}>
                           <input type="hidden" name="id" value={item.id} />
                           <Button type="submit" variant="destructive" size="sm">
