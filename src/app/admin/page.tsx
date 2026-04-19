@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatTimeAgo } from "@/lib/time";
+import { UserAvatar } from "@/components/user-avatar";
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
@@ -22,6 +24,43 @@ export default async function AdminDashboardPage() {
     prisma.item.count({ where: { type: "found" } }),
     prisma.item.count({ where: { status: "pending" } }),
   ]);
+  const [recentItems, recentClaims, recentApproved] = await Promise.all([
+    prisma.item.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { name: true } } },
+      take: 4,
+    }),
+    prisma.claim.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { claimant: { select: { name: true } }, item: { select: { title: true } } },
+      take: 3,
+    }),
+    prisma.item.findMany({
+      where: { status: "approved" },
+      orderBy: { updatedAt: "desc" },
+      include: { user: { select: { name: true } } },
+      take: 3,
+    }),
+  ]);
+  const activity = [
+    ...recentItems.map((row) => ({
+      at: row.createdAt,
+      who: row.user.name,
+      text: `${row.user.name} posted a ${row.type} item: ${row.title}`,
+    })),
+    ...recentClaims.map((row) => ({
+      at: row.createdAt,
+      who: row.claimant.name,
+      text: `${row.claimant.name} submitted a claim on: ${row.item.title}`,
+    })),
+    ...recentApproved.map((row) => ({
+      at: row.updatedAt,
+      who: "Admin",
+      text: `Admin approved: ${row.title}`,
+    })),
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 10);
 
   const pendingHighlight =
     pendingItems > 0
@@ -99,6 +138,29 @@ export default async function AdminDashboardPage() {
           ) : null}
         </Card>
       </div>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Recent Activity</h2>
+        <Card>
+          <CardContent className="pt-4">
+            {activity.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No recent activity.</p>
+            ) : (
+              <ul className="space-y-3">
+                {activity.map((entry, idx) => (
+                  <li key={`${entry.text}-${idx}`} className="flex items-start gap-3 text-sm">
+                    <UserAvatar name={entry.who} />
+                    <div>
+                      <p>{entry.text}</p>
+                      <p className="text-xs text-muted-foreground">{formatTimeAgo(entry.at)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }

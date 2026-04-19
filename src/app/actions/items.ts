@@ -38,6 +38,8 @@ export async function createItem(
   const location = String(formData.get("location") || "").trim();
   const dateStr = String(formData.get("date") || "");
   const type = String(formData.get("type") || "");
+  const verificationQuestion = String(formData.get("verificationQuestion") || "").trim();
+  const verificationAnswer = String(formData.get("verificationAnswer") || "").trim();
 
   if (!title || !description || !location || !dateStr || !type) {
     return { error: "Please fill in all required fields." };
@@ -49,21 +51,23 @@ export async function createItem(
     return { error: "Please choose a category." };
   }
 
-  const file = formData.get("image");
-  let imagePath: string | null = null;
-
-  if (file && typeof file === "object" && "arrayBuffer" in file) {
-    const f = file as File;
-    if (f.size > 0) {
-      const buf = Buffer.from(await f.arrayBuffer());
-      const uploadsDir = path.join(process.cwd(), "public", "uploads");
-      await mkdir(uploadsDir, { recursive: true });
-      const name = safeUploadName(f.name || "upload");
-      const full = path.join(uploadsDir, name);
-      await writeFile(full, buf);
-      imagePath = `/uploads/${name}`;
+  const uploadsDir = path.join(process.cwd(), "public", "uploads");
+  await mkdir(uploadsDir, { recursive: true });
+  const files = formData.getAll("images");
+  const uploaded: string[] = [];
+  for (const file of files.slice(0, 3)) {
+    if (file && typeof file === "object" && "arrayBuffer" in file) {
+      const f = file as File;
+      if (f.size > 0) {
+        const buf = Buffer.from(await f.arrayBuffer());
+        const name = safeUploadName(f.name || "upload");
+        const full = path.join(uploadsDir, name);
+        await writeFile(full, buf);
+        uploaded.push(`/uploads/${name}`);
+      }
     }
   }
+  const imagePath = uploaded[0] || null;
 
   await prisma.item.create({
     data: {
@@ -75,6 +79,9 @@ export async function createItem(
       type,
       status: "pending",
       image: imagePath,
+      images: uploaded.length ? JSON.stringify(uploaded) : null,
+      verificationQuestion: verificationQuestion || null,
+      verificationAnswer: verificationAnswer || null,
       userId,
     },
   });
@@ -117,7 +124,55 @@ export async function markItemReturned(formData: FormData) {
     where: { id },
     data: { status: "returned" },
   });
+  await prisma.successStory.upsert({
+    where: { itemId_userId: { itemId: id, userId } },
+    update: {},
+    create: { itemId: id, userId },
+  });
   revalidatePath("/dashboard/my-items");
   revalidatePath("/dashboard");
+  revalidatePath("/stories");
+  revalidatePath("/");
   revalidatePath(`/items/${id}`);
+}
+
+export async function saveSuccessStory(formData: FormData) {
+  const userId = await requireSessionUserId();
+  const itemId = String(formData.get("itemId") || "");
+  const message = String(formData.get("message") || "").trim();
+  if (!itemId) return;
+  await prisma.successStory.upsert({
+    where: { itemId_userId: { itemId, userId } },
+    update: { message: message || null },
+    create: { itemId, userId, message: message || null },
+  });
+  revalidatePath("/stories");
+  revalidatePath("/");
+  revalidatePath("/dashboard/my-items");
+}
+
+export async function markItemReturnedWithStory(
+  _prev: { error: string | null; success: string | null },
+  formData: FormData,
+) {
+  const userId = await requireSessionUserId();
+  const id = String(formData.get("id") || "");
+  const message = String(formData.get("story") || "").trim();
+  if (!id) return { error: "Invalid item.", success: null };
+  const item = await prisma.item.findFirst({
+    where: { id, userId, status: "approved" },
+  });
+  if (!item) return { error: "Item not eligible.", success: null };
+  await prisma.$transaction([
+    prisma.item.update({ where: { id }, data: { status: "returned" } }),
+    prisma.successStory.upsert({
+      where: { itemId_userId: { itemId: id, userId } },
+      update: { message: message || null },
+      create: { itemId: id, userId, message: message || null },
+    }),
+  ]);
+  revalidatePath("/dashboard/my-items");
+  revalidatePath("/stories");
+  revalidatePath("/");
+  return { error: null, success: "Returned marked and story saved." };
 }

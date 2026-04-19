@@ -27,6 +27,11 @@ export default async function DashboardPage() {
       where: isAdmin ? { status: "returned" } : { userId, status: "returned" },
     }),
   ]);
+  const [itemsPosted, itemsRecovered, activeClaims] = await Promise.all([
+    prisma.item.count({ where: { userId } }),
+    prisma.item.count({ where: { userId, status: "returned" } }),
+    prisma.claim.count({ where: { claimantId: userId, status: "pending" } }),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -85,7 +90,30 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {!isAdmin ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Items posted</CardTitle>
+            </CardHeader>
+            <CardContent className="text-2xl font-semibold">{itemsPosted}</CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Items recovered</CardTitle>
+            </CardHeader>
+            <CardContent className="text-2xl font-semibold">{itemsRecovered}</CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Active claims</CardTitle>
+            </CardHeader>
+            <CardContent className="text-2xl font-semibold">{activeClaims}</CardContent>
+          </Card>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Link
           href="/dashboard/add?type=lost"
           className={cn(
@@ -132,6 +160,18 @@ export default async function DashboardPage() {
           <span className="text-base font-semibold">Profile</span>
           <span className="text-xs font-normal text-muted-foreground">
             Update your name and phone for contact listings.
+          </span>
+        </Link>
+        <Link
+          href="/dashboard/my-claims"
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left",
+          )}
+        >
+          <span className="text-base font-semibold">My Claims</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            Track claim requests and accepted contacts.
           </span>
         </Link>
       </div>

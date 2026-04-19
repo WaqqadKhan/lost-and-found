@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { Bell } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/user-avatar";
 
 export function Navbar({
   pendingReviewCount = 0,
@@ -61,6 +62,10 @@ export function Navbar({
                   ) : null}
                 </Link>
               ) : null}
+              <Link href="/dashboard/profile" className={cn(linkClass(), "gap-2")}>
+                <UserAvatar name={session.user.name || "User"} className="size-6 text-[10px]" />
+                <span className="hidden sm:inline">{session.user.name?.split(" ")[0] || "Profile"}</span>
+              </Link>
               <Button
                 variant="outline"
                 size="sm"

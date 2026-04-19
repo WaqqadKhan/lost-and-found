@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { SearchBar } from "@/components/search-bar";
 import { ItemCard } from "@/components/item-card";
+import Link from "next/link";
+import { QUICK_SEARCH_TAGS } from "@/lib/constants";
 import {
   Card,
   CardContent,
@@ -12,14 +14,24 @@ import {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { keyword?: string; category?: string; location?: string; type?: string };
+  searchParams: {
+    keyword?: string;
+    category?: string;
+    location?: string;
+    type?: string;
+    page?: string;
+    sort?: string;
+  };
 }) {
   const keyword = (searchParams.keyword || "").trim();
   const category = (searchParams.category || "").trim();
   const location = (searchParams.location || "").trim();
   const type = (searchParams.type || "").trim();
+  const sort = searchParams.sort === "oldest" ? "oldest" : "newest";
+  const page = Math.max(1, Number(searchParams.page || "1") || 1);
+  const perPage = 12;
 
-  const filters = [];
+  const filters: Record<string, unknown>[] = [];
   if (keyword) {
     filters.push({
       title: {
@@ -54,9 +66,42 @@ export default async function SearchPage({
       status: "approved",
       ...(filters.length ? { AND: filters } : {}),
     },
-    orderBy: { createdAt: "desc" },
-    take: 60,
+    orderBy: { createdAt: sort === "oldest" ? "asc" : "desc" },
+    skip: (page - 1) * perPage,
+    take: perPage,
   });
+
+  const total = await prisma.item.count({
+    where: {
+      status: "approved",
+      ...(filters.length ? { AND: filters } : {}),
+    },
+  });
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const from = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const to = Math.min(page * perPage, total);
+
+  const locationGroups = await prisma.item.groupBy({
+    by: ["location"],
+    where: { status: "approved" },
+    _count: { location: true },
+    orderBy: { _count: { location: "desc" } },
+    take: 12,
+  });
+
+  const activeFilterCount = [keyword, category, location, type].filter(Boolean).length;
+  const baseParams = new URLSearchParams();
+  if (keyword) baseParams.set("keyword", keyword);
+  if (category) baseParams.set("category", category);
+  if (location) baseParams.set("location", location);
+  if (type) baseParams.set("type", type);
+  if (sort !== "newest") baseParams.set("sort", sort);
+  const baseQuery = baseParams.toString();
+  const pageHref = (p: number) => {
+    const q = new URLSearchParams(baseParams);
+    if (p > 1) q.set("page", String(p));
+    return `/search${q.toString() ? `?${q.toString()}` : ""}`;
+  };
 
   return (
     <div className="space-y-8">
@@ -78,16 +123,97 @@ export default async function SearchPage({
             defaultCategory={category}
             defaultLocation={location}
             defaultType={type}
+            defaultSort={sort}
             targetPath="/search"
           />
         </CardContent>
       </Card>
 
+      {activeFilterCount === 0 ? (
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground">Popular searches</h3>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_SEARCH_TAGS.map((tag) => (
+              <Link
+                key={tag}
+                href={`/search?keyword=${encodeURIComponent(tag)}`}
+                className="rounded-full border bg-muted px-3 py-1 text-sm hover:bg-muted/70"
+              >
+                {tag}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground">Browse by Location</h3>
+        <div className="flex flex-wrap gap-2">
+          {locationGroups.map((group) => (
+            <Link
+              key={group.location}
+              href={`/search?location=${encodeURIComponent(group.location)}`}
+              className="rounded-full border bg-muted px-3 py-1 text-sm hover:bg-muted/70"
+            >
+              {group.location} ({group._count.location})
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {activeFilterCount > 0 ? (
+        <section className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {keyword ? (
+              <Link
+                href={`/search?${new URLSearchParams({ ...(category && { category }), ...(location && { location }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
+                className="rounded-full bg-gray-100 px-3 py-1 text-sm"
+              >
+                {keyword} ×
+              </Link>
+            ) : null}
+            {category ? (
+              <Link
+                href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(location && { location }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
+                className="rounded-full bg-gray-100 px-3 py-1 text-sm"
+              >
+                {category} ×
+              </Link>
+            ) : null}
+            {type ? (
+              <Link
+                href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(category && { category }), ...(location && { location }), ...(sort !== "newest" && { sort }) }).toString()}`}
+                className="rounded-full bg-gray-100 px-3 py-1 text-sm"
+              >
+                {type} ×
+              </Link>
+            ) : null}
+            {location ? (
+              <Link
+                href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(category && { category }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
+                className="rounded-full bg-gray-100 px-3 py-1 text-sm"
+              >
+                {location} ×
+              </Link>
+            ) : null}
+            {activeFilterCount >= 2 ? (
+              <Link href="/search" className="text-sm text-primary underline-offset-4 hover:underline">
+                Clear all filters
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">
-          Results{" "}
-          <span className="text-sm font-normal text-muted-foreground">({items.length})</span>
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">
+            Results <span className="text-sm font-normal text-muted-foreground">({total})</span>
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Showing {from}-{to} of {total} results
+          </p>
+        </div>
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground">No items matched your filters.</p>
         ) : (
@@ -97,6 +223,31 @@ export default async function SearchPage({
             ))}
           </div>
         )}
+        {totalPages > 1 ? (
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            <Link
+              href={pageHref(Math.max(1, page - 1))}
+              className="rounded-md border px-3 py-1 text-sm disabled:pointer-events-none"
+            >
+              Previous
+            </Link>
+            {Array.from({ length: totalPages }).slice(0, 7).map((_, idx) => {
+              const p = idx + 1;
+              return (
+                <Link
+                  key={p}
+                  href={pageHref(p)}
+                  className={`rounded-md border px-3 py-1 text-sm ${p === page ? "bg-primary text-primary-foreground" : ""}`}
+                >
+                  {p}
+                </Link>
+              );
+            })}
+            <Link href={pageHref(Math.min(totalPages, page + 1))} className="rounded-md border px-3 py-1 text-sm">
+              Next
+            </Link>
+          </div>
+        ) : null}
       </section>
     </div>
   );

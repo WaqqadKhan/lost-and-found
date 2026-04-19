@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { deleteMyItem, markItemReturned } from "@/app/actions/items";
+import { deleteMyItem } from "@/app/actions/items";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Table,
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge, TypeBadge } from "@/components/badges";
 import { cn } from "@/lib/utils";
+import { ReturnItemDialog } from "@/components/return-item-dialog";
+import { formatTimeAgo } from "@/lib/time";
 
 export default async function MyItemsPage() {
   const session = await requireUser();
@@ -51,7 +53,7 @@ export default async function MyItemsPage() {
             </TableHeader>
             <TableBody>
               {items.map((item) => {
-                const when = new Date(item.date).toLocaleDateString();
+                const when = formatTimeAgo(item.createdAt);
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="max-w-[220px] whitespace-normal font-medium">
@@ -73,12 +75,7 @@ export default async function MyItemsPage() {
                           View
                         </Link>
                         {item.status === "approved" ? (
-                          <form action={markItemReturned}>
-                            <input type="hidden" name="id" value={item.id} />
-                            <Button type="submit" variant="secondary" size="sm">
-                              Mark returned
-                            </Button>
-                          </form>
+                          <ReturnItemDialog itemId={item.id} />
                         ) : null}
                         <form action={deleteMyItem}>
                           <input type="hidden" name="id" value={item.id} />

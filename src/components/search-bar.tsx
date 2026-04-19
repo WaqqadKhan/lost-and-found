@@ -3,19 +3,21 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { ITEM_CATEGORIES } from "@/lib/constants";
+import { CAMPUS_LOCATIONS, ITEM_CATEGORIES } from "@/lib/constants";
 
 export function SearchBar({
   defaultKeyword = "",
   defaultCategory = "",
   defaultLocation = "",
   defaultType = "",
+  defaultSort = "newest",
   targetPath = "/search",
 }: {
   defaultKeyword?: string;
   defaultCategory?: string;
   defaultLocation?: string;
   defaultType?: string;
+  defaultSort?: string;
   targetPath?: string;
 }) {
   const router = useRouter();
@@ -23,13 +25,15 @@ export function SearchBar({
   const [category, setCategory] = useState(defaultCategory);
   const [location, setLocation] = useState(defaultLocation);
   const [type, setType] = useState(defaultType);
+  const [sort, setSort] = useState(defaultSort);
 
   useEffect(() => {
     setKeyword(defaultKeyword);
     setCategory(defaultCategory);
     setLocation(defaultLocation);
     setType(defaultType);
-  }, [defaultKeyword, defaultCategory, defaultLocation, defaultType]);
+    setSort(defaultSort);
+  }, [defaultKeyword, defaultCategory, defaultLocation, defaultType, defaultSort]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -38,13 +42,14 @@ export function SearchBar({
       if (category.trim()) params.set("category", category.trim());
       if (type.trim()) params.set("type", type.trim());
       if (location.trim()) params.set("location", location.trim());
+      if (sort && sort !== "newest") params.set("sort", sort);
       const query = params.toString();
       const href = query ? `${targetPath}?${query}` : targetPath;
       router.replace(href, { scroll: false });
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [keyword, category, location, type, targetPath, router]);
+  }, [keyword, category, location, type, sort, targetPath, router]);
 
   return (
     <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -86,8 +91,24 @@ export function SearchBar({
           className="h-10"
           placeholder="Location"
           value={location}
+          list="campus-locations"
           onChange={(e) => setLocation(e.target.value)}
         />
+        <datalist id="campus-locations">
+          {CAMPUS_LOCATIONS.map((place) => (
+            <option key={place} value={place} />
+          ))}
+        </datalist>
+      </div>
+      <div className="w-full space-y-1 sm:w-40">
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
+        >
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+        </select>
       </div>
     </div>
   );

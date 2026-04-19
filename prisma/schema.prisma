@@ -17,6 +17,9 @@ model User {
   createdAt     DateTime       @default(now())
   items         Item[]
   notifications Notification[]
+  claims        Claim[]
+  comments      Comment[]
+  successStories SuccessStory[]
 }
 
 model Item {
@@ -29,8 +32,14 @@ model Item {
   type        String
   status      String   @default("pending")
   image       String?
+  images      String?
   userId      String
   user        User     @relation(fields: [userId], references: [id])
+  verificationQuestion String?
+  verificationAnswer   String?
+  claims      Claim[]
+  comments    Comment[]
+  successStories SuccessStory[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -44,4 +53,41 @@ model Notification {
   itemId    String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model Claim {
+  id                 String   @id @default(cuid())
+  itemId             String
+  item               Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  claimantId         String
+  claimant           User     @relation(fields: [claimantId], references: [id], onDelete: Cascade)
+  message            String
+  status             String   @default("pending")
+  verificationAnswer String?
+  verificationMatched Boolean @default(false)
+  createdAt          DateTime @default(now())
+
+  @@unique([itemId, claimantId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model SuccessStory {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String?
+  createdAt DateTime @default(now())
+
+  @@unique([itemId, userId])
 }
