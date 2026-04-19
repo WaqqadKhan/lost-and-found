@@ -14,7 +14,8 @@ import {
 import { StatusBadge, TypeBadge } from "@/components/badges";
 import { cn } from "@/lib/utils";
 import { ReturnItemDialog } from "@/components/return-item-dialog";
-import { formatTimeAgo } from "@/lib/time";
+import { formatTimeAgo, isWithinHours } from "@/lib/time";
+import { EmptyState } from "@/components/empty-state";
 
 export default async function MyItemsPage() {
   const session = await requireUser();
@@ -38,7 +39,12 @@ export default async function MyItemsPage() {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">You have not posted any items yet.</p>
+        <EmptyState
+          title="No items yet"
+          description="No items found. Be the first to report!"
+          ctaLabel="Post Item"
+          ctaHref="/dashboard/add"
+        />
       ) : (
         <div className="rounded-xl border bg-card">
           <Table>
@@ -57,7 +63,12 @@ export default async function MyItemsPage() {
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="max-w-[220px] whitespace-normal font-medium">
-                      {item.title}
+                      <span className="inline-flex items-center gap-2">
+                        {item.title}
+                        {isWithinHours(item.createdAt, 24) ? (
+                          <span className="rounded-full bg-blue-500 px-2 py-0.5 text-xs text-white">NEW</span>
+                        ) : null}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <TypeBadge type={item.type} />

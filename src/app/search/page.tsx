@@ -3,6 +3,7 @@ import { SearchBar } from "@/components/search-bar";
 import { ItemCard } from "@/components/item-card";
 import Link from "next/link";
 import { QUICK_SEARCH_TAGS } from "@/lib/constants";
+import { X } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EmptyState } from "@/components/empty-state";
 
 export default async function SearchPage({
   searchParams,
@@ -96,7 +98,6 @@ export default async function SearchPage({
   if (location) baseParams.set("location", location);
   if (type) baseParams.set("type", type);
   if (sort !== "newest") baseParams.set("sort", sort);
-  const baseQuery = baseParams.toString();
   const pageHref = (p: number) => {
     const q = new URLSearchParams(baseParams);
     if (p > 1) q.set("page", String(p));
@@ -169,7 +170,7 @@ export default async function SearchPage({
                 href={`/search?${new URLSearchParams({ ...(category && { category }), ...(location && { location }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
                 className="rounded-full bg-gray-100 px-3 py-1 text-sm"
               >
-                {keyword} ×
+                <span className="inline-flex items-center gap-1">{keyword} <X className="size-3" /></span>
               </Link>
             ) : null}
             {category ? (
@@ -177,7 +178,7 @@ export default async function SearchPage({
                 href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(location && { location }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
                 className="rounded-full bg-gray-100 px-3 py-1 text-sm"
               >
-                {category} ×
+                <span className="inline-flex items-center gap-1">{category} <X className="size-3" /></span>
               </Link>
             ) : null}
             {type ? (
@@ -185,7 +186,7 @@ export default async function SearchPage({
                 href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(category && { category }), ...(location && { location }), ...(sort !== "newest" && { sort }) }).toString()}`}
                 className="rounded-full bg-gray-100 px-3 py-1 text-sm"
               >
-                {type} ×
+                <span className="inline-flex items-center gap-1">{type} <X className="size-3" /></span>
               </Link>
             ) : null}
             {location ? (
@@ -193,7 +194,7 @@ export default async function SearchPage({
                 href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(category && { category }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
                 className="rounded-full bg-gray-100 px-3 py-1 text-sm"
               >
-                {location} ×
+                <span className="inline-flex items-center gap-1">{location} <X className="size-3" /></span>
               </Link>
             ) : null}
             {activeFilterCount >= 2 ? (
@@ -215,7 +216,12 @@ export default async function SearchPage({
           </p>
         </div>
         {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No items matched your filters.</p>
+          <EmptyState
+            title="No items match your search"
+            description="Try different keywords or remove some filters."
+            ctaLabel="Clear filters"
+            ctaHref="/search"
+          />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (

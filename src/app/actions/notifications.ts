@@ -27,7 +27,7 @@ export async function markNotificationRead(formData: FormData) {
   revalidatePath("/");
 }
 
-export async function markAllNotificationsRead(_formData?: FormData) {
+export async function markAllNotificationsRead() {
   const userId = await requireUserId();
   await prisma.notification.updateMany({
     where: { userId, read: false },

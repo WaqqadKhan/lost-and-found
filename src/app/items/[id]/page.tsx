@@ -119,6 +119,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex gap-3 rounded-lg border bg-background/80 p-3">
+                <UserAvatar name={item.user.name} className="size-8 text-[10px]" />
                 <User className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

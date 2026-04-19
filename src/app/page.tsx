@@ -158,9 +158,9 @@ export default async function HomePage() {
           </Link>
         </div>
         {items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No approved items yet. Check back soon or sign in to submit the first report.
-          </p>
+          <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
+            No items found. Be the first to report!
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => (
@@ -168,6 +168,11 @@ export default async function HomePage() {
             ))}
           </div>
         )}
+        <div>
+          <Link href="/search" className="text-sm text-primary underline-offset-4 hover:underline">
+            View All Items
+          </Link>
+        </div>
       </section>
 
       <section className="space-y-4">

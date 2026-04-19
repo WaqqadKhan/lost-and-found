@@ -24,7 +24,7 @@ export default async function AdminDashboardPage() {
     prisma.item.count({ where: { type: "found" } }),
     prisma.item.count({ where: { status: "pending" } }),
   ]);
-  const [recentItems, recentClaims, recentApproved] = await Promise.all([
+  const [recentItems, recentClaims, recentApproved, recentReturned] = await Promise.all([
     prisma.item.findMany({
       orderBy: { createdAt: "desc" },
       include: { user: { select: { name: true } } },
@@ -37,6 +37,12 @@ export default async function AdminDashboardPage() {
     }),
     prisma.item.findMany({
       where: { status: "approved" },
+      orderBy: { updatedAt: "desc" },
+      include: { user: { select: { name: true } } },
+      take: 3,
+    }),
+    prisma.item.findMany({
+      where: { status: "returned" },
       orderBy: { updatedAt: "desc" },
       include: { user: { select: { name: true } } },
       take: 3,
@@ -57,6 +63,11 @@ export default async function AdminDashboardPage() {
       at: row.updatedAt,
       who: "Admin",
       text: `Admin approved: ${row.title}`,
+    })),
+    ...recentReturned.map((row) => ({
+      at: row.updatedAt,
+      who: row.user.name,
+      text: `${row.user.name} marked as returned: ${row.title}`,
     })),
   ]
     .sort((a, b) => b.at.getTime() - a.at.getTime())

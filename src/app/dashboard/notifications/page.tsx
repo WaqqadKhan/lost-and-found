@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/session";
 import { markAllNotificationsRead, markNotificationRead } from "@/app/actions/notifications";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/empty-state";
 
 export default async function NotificationsPage() {
   const session = await requireUser();
@@ -19,7 +20,7 @@ export default async function NotificationsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
           <p className="text-sm text-muted-foreground">
-            Updates when your listings are approved or rejected by an admin.
+            Updates for approvals, rejections, and claim activity.
           </p>
         </div>
         <form action={markAllNotificationsRead}>
@@ -30,7 +31,12 @@ export default async function NotificationsPage() {
       </div>
 
       {notifications.length === 0 ? (
-        <p className="text-sm text-muted-foreground">You have no notifications yet.</p>
+        <EmptyState
+          title="All caught up!"
+          description="No new notifications."
+          ctaLabel="Browse items"
+          ctaHref="/search"
+        />
       ) : (
         <ul className="space-y-3">
           {notifications.map((n) => {

@@ -6,6 +6,7 @@ import { formatTimeAgo } from "@/lib/time";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/empty-state";
 
 export default async function MyClaimsPage() {
   const session = await requireUser();
@@ -29,7 +30,12 @@ export default async function MyClaimsPage() {
         </Link>
       </div>
       {claims.length === 0 ? (
-        <p className="text-sm text-muted-foreground">You haven&apos;t submitted any claims yet.</p>
+        <EmptyState
+          title="No claims yet"
+          description="You haven't submitted any claims yet."
+          ctaLabel="Browse items"
+          ctaHref="/search"
+        />
       ) : (
         <div className="space-y-4">
           {claims.map((claim) => (
