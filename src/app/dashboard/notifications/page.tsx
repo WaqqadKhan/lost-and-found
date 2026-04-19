@@ -19,7 +19,7 @@ export default async function NotificationsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground/85">
             Updates for approvals, rejections, and claim activity.
           </p>
         </div>
@@ -60,8 +60,8 @@ export default async function NotificationsPage() {
                         {n.message}
                       </button>
                     </form>
-                    <p className="text-xs text-muted-foreground">{when}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-foreground/75">{when}</p>
+                    <p className="text-xs text-foreground/75">
                       Status: {n.read ? "Read" : "Unread"} · Type: {n.type}
                     </p>
                     {n.itemId ? (

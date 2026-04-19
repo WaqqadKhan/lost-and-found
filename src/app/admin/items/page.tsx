@@ -53,7 +53,12 @@ export default async function AdminItemsPage() {
               return (
                 <TableRow key={item.id}>
                   <TableCell className="max-w-[200px] whitespace-normal font-medium">
-                    {item.title}
+                    <Link
+                      href={`/items/${item.id}`}
+                      className="underline-offset-4 hover:underline"
+                    >
+                      {item.title}
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <TypeBadge type={item.type} />
@@ -68,6 +73,12 @@ export default async function AdminItemsPage() {
                   <TableCell className="text-muted-foreground">{when}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-wrap justify-end gap-2">
+                      <Link
+                        href={`/items/${item.id}`}
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        View
+                      </Link>
                       <Link
                         href={`/admin/items/${item.id}/edit`}
                         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

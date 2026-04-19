@@ -46,8 +46,8 @@ export default async function RootLayout({
           <main className="mx-auto w-full max-w-6xl px-4 py-8">{children}</main>
           <footer className="border-t bg-muted/40">
             <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-muted-foreground">
-              <p>Lost &amp; Found — University Name</p>
-              <p>Built for [Department] FYP 2026</p>
+              <p>Lost &amp; Found — IIUI Islamabad</p>
+              <p>Built for Department of IT FYP 2026</p>
             </div>
           </footer>
         </Providers>

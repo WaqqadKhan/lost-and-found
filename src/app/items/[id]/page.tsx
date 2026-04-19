@@ -15,11 +15,12 @@ import {
 } from "@/components/ui/card";
 import { StatusBadge, TypeBadge } from "@/components/badges";
 import { ItemCard } from "@/components/item-card";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ClaimForm, CopyLinkButton, ItemImageGallery } from "@/components/item-interactions";
 import { decideClaim, postComment } from "@/app/actions/community";
 import { UserAvatar } from "@/components/user-avatar";
+import { approveItem } from "@/app/actions/admin";
 
 export default async function ItemDetailPage({ params }: { params: { id: string } }) {
   const item = await prisma.item.findUnique({
@@ -171,6 +172,14 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             <Link href="/search" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
               Back to search
             </Link>
+            {isAdmin && item.status === "pending" ? (
+              <form action={approveItem}>
+                <input type="hidden" name="id" value={item.id} />
+                <Button type="submit" size="sm">
+                  Approve
+                </Button>
+              </form>
+            ) : null}
             <CopyLinkButton />
           </div>
 

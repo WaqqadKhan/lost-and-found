@@ -34,17 +34,17 @@ export default async function AddItemPage({
         </p>
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-50">
-        <p className="font-medium">Contact visibility</p>
-        <p className="mt-1 text-blue-900/90 dark:text-blue-100/90">
+      <div className="rounded-lg border border-blue-300 bg-blue-100 p-4 text-sm text-blue-950 dark:border-blue-700 dark:bg-blue-900/60 dark:text-blue-50">
+        <p className="font-semibold tracking-tight">Contact visibility</p>
+        <p className="mt-1 text-blue-950 dark:text-blue-50">
           Your contact info (email and phone from your profile) will be shown to others so they can
           reach you about this listing.
         </p>
       </div>
 
       {!hasPhone ? (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-50">
-          <p className="font-medium">No phone number on your profile</p>
+        <div className="rounded-lg border border-amber-400 bg-amber-100 p-4 text-sm text-amber-950 dark:border-amber-700 dark:bg-amber-900/60 dark:text-amber-50">
+          <p className="font-semibold tracking-tight">No phone number on your profile</p>
           <p className="mt-1">
             You haven&apos;t added a phone number. Add one in your{" "}
             <Link className="font-semibold underline underline-offset-2" href="/dashboard/profile">

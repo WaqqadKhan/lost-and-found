@@ -13,7 +13,7 @@ export default async function ProfilePage() {
   const session = await requireUser();
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, email: true, phone: true },
+    select: { name: true, email: true, phone: true, autoApprove: true },
   });
 
   if (!user) {
@@ -38,6 +38,8 @@ export default async function ProfilePage() {
             defaultName={user.name}
             email={user.email}
             defaultPhone={user.phone ?? ""}
+            isAdmin={session.user.role === "admin"}
+            defaultAutoApprove={user.autoApprove}
           />
         </CardContent>
       </Card>

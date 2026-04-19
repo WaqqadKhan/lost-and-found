@@ -26,6 +26,7 @@ export function SearchBar({
   const [location, setLocation] = useState(defaultLocation);
   const [type, setType] = useState(defaultType);
   const [sort, setSort] = useState(defaultSort);
+  const [hasInteracted, setHasInteracted] = useState(false);
 
   useEffect(() => {
     setKeyword(defaultKeyword);
@@ -33,9 +34,12 @@ export function SearchBar({
     setLocation(defaultLocation);
     setType(defaultType);
     setSort(defaultSort);
+    setHasInteracted(false);
   }, [defaultKeyword, defaultCategory, defaultLocation, defaultType, defaultSort]);
 
   useEffect(() => {
+    if (!hasInteracted) return;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       if (keyword.trim()) params.set("keyword", keyword.trim());
@@ -49,7 +53,7 @@ export function SearchBar({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [keyword, category, location, type, sort, targetPath, router]);
+  }, [keyword, category, location, type, sort, targetPath, router, hasInteracted]);
 
   return (
     <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -58,13 +62,19 @@ export function SearchBar({
           className="h-10"
           placeholder="Search by title..."
           value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
+          onChange={(e) => {
+            setHasInteracted(true);
+            setKeyword(e.target.value);
+          }}
         />
       </div>
       <div className="w-full space-y-1 sm:w-44">
         <select
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => {
+            setHasInteracted(true);
+            setCategory(e.target.value);
+          }}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
         >
           <option value="">All categories</option>
@@ -78,7 +88,10 @@ export function SearchBar({
       <div className="w-full space-y-1 sm:w-40">
         <select
           value={type}
-          onChange={(e) => setType(e.target.value)}
+          onChange={(e) => {
+            setHasInteracted(true);
+            setType(e.target.value);
+          }}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
         >
           <option value="">All Types</option>
@@ -92,7 +105,10 @@ export function SearchBar({
           placeholder="Location"
           value={location}
           list="campus-locations"
-          onChange={(e) => setLocation(e.target.value)}
+          onChange={(e) => {
+            setHasInteracted(true);
+            setLocation(e.target.value);
+          }}
         />
         <datalist id="campus-locations">
           {CAMPUS_LOCATIONS.map((place) => (
@@ -103,7 +119,10 @@ export function SearchBar({
       <div className="w-full space-y-1 sm:w-40">
         <select
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={(e) => {
+            setHasInteracted(true);
+            setSort(e.target.value);
+          }}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
         >
           <option value="newest">Newest First</option>

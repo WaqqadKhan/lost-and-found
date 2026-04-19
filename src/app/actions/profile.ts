@@ -21,9 +21,18 @@ export async function updateProfile(
 
   const name = String(formData.get("name") || "").trim();
   const phone = String(formData.get("phone") || "").trim();
+  const autoApproveChecked = formData.get("autoApprove") === "on";
 
   if (!name) {
     return { error: "Name is required.", success: null };
+  }
+
+  const current = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true },
+  });
+  if (!current) {
+    return { error: "User not found.", success: null };
   }
 
   await prisma.user.update({
@@ -31,6 +40,7 @@ export async function updateProfile(
     data: {
       name,
       phone: phone.length ? phone : null,
+      ...(current.role === "admin" ? { autoApprove: autoApproveChecked } : {}),
     },
   });
 

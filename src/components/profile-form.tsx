@@ -21,10 +21,14 @@ export function ProfileForm({
   defaultName,
   email,
   defaultPhone,
+  isAdmin,
+  defaultAutoApprove,
 }: {
   defaultName: string;
   email: string;
   defaultPhone: string;
+  isAdmin: boolean;
+  defaultAutoApprove: boolean;
 }) {
   const [state, formAction] = useFormState(updateProfile, initial);
 
@@ -63,6 +67,26 @@ export function ProfileForm({
           autoComplete="tel"
         />
       </div>
+
+      {isAdmin ? (
+        <div className="rounded-lg border p-3">
+          <label htmlFor="autoApprove" className="flex items-start gap-2 text-sm">
+            <input
+              id="autoApprove"
+              name="autoApprove"
+              type="checkbox"
+              defaultChecked={defaultAutoApprove}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium">Auto approve new listings</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                When enabled, new submissions are automatically approved.
+              </span>
+            </span>
+          </label>
+        </div>
+      ) : null}
 
       <SubmitButton />
     </form>

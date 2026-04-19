@@ -68,6 +68,10 @@ export async function createItem(
     }
   }
   const imagePath = uploaded[0] || null;
+  const autoApproveEnabled = await prisma.user.findFirst({
+    where: { role: "admin", autoApprove: true },
+    select: { id: true },
+  });
 
   await prisma.item.create({
     data: {
@@ -77,7 +81,7 @@ export async function createItem(
       location,
       date: new Date(dateStr),
       type,
-      status: "pending",
+      status: autoApproveEnabled ? "approved" : "pending",
       image: imagePath,
       images: uploaded.length ? JSON.stringify(uploaded) : null,
       verificationQuestion: verificationQuestion || null,
