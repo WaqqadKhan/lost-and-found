@@ -3,17 +3,19 @@
 import { useFormState, useFormStatus } from "react-dom";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { FileDropzone } from "@/components/file-dropzone";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createItem, type ItemFormState } from "@/app/actions/items";
 import { CAMPUS_LOCATIONS, ITEM_CATEGORIES } from "@/lib/constants";
-import { nativeSelectClassName } from "@/lib/select-styles";
+import { FancySelect } from "@/components/ui/select";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" className="w-full sm:w-auto" disabled={pending}>
+    <Button type="submit" className="w-full sm:w-auto" loading={pending} disabled={pending}>
       {pending ? "Saving…" : "Submit report"}
     </Button>
   );
@@ -48,24 +50,11 @@ export function AddItemForm({ defaultType = "lost" }: { defaultType?: string }) 
         : progress <= 80
           ? "Looking great! A photo would help a lot."
           : "Excellent! This post has the best chance of a match.";
-  const progressColor =
-    progress <= 40
-      ? "bg-red-500"
-      : progress <= 60
-        ? "bg-orange-500"
-        : progress <= 80
-          ? "bg-yellow-500"
-          : "bg-green-500";
 
   return (
     <form action={formAction} className="mx-auto max-w-xl space-y-4">
       <div className="space-y-1">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div
-            className={`h-full transition-all duration-300 ${progressColor}`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+        <Progress value={progress} />
         <p className="text-xs text-muted-foreground">
           {progress}% complete — {message}
         </p>
@@ -103,19 +92,13 @@ export function AddItemForm({ defaultType = "lost" }: { defaultType?: string }) 
 
       <div className="space-y-2">
         <Label htmlFor="category">Category</Label>
-        <select
+        <FancySelect
           id="category"
           name="category"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className={nativeSelectClassName}
-        >
-          {ITEM_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+          onValueChange={setCategory}
+          options={ITEM_CATEGORIES.map((c) => ({ value: c, label: c }))}
+        />
       </div>
 
       <div className="space-y-2">
@@ -173,15 +156,8 @@ export function AddItemForm({ defaultType = "lost" }: { defaultType?: string }) 
       </fieldset>
 
       <div className="space-y-2">
-        <Label htmlFor="images">Photos (optional, up to 3)</Label>
-        <Input
-          id="images"
-          name="images"
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => setFilesCount(e.currentTarget.files?.length || 0)}
-        />
+        <Label>Photos (optional, up to 3)</Label>
+        <FileDropzone name="images" maxFiles={3} onChange={setFilesCount} />
       </div>
 
       {type === "found" ? (

@@ -22,6 +22,8 @@ model User {
   comments      Comment[]
   successStories SuccessStory[]
   reunionViews  ReunionView[]
+
+  @@index([role])
 }
 
 model Item {
@@ -45,6 +47,12 @@ model Item {
   reunionViews ReunionView[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([type, status])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([category])
 }
 
 model Notification {
@@ -56,6 +64,8 @@ model Notification {
   itemId    String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId, read])
 }
 
 model Claim {
@@ -104,4 +114,15 @@ model ReunionView {
   createdAt DateTime @default(now())
 
   @@unique([itemId, userId])
+}
+
+/// Singleton site-wide appearance (id = "default"). Controlled by admin; applies to all users.
+model SiteSettings {
+  id             String   @id @default("default")
+  canvasMode     String   @default("solid")
+  canvasColor1   String   @default("#F4F1E8")
+  canvasColor2   String   @default("#E4EDE4")
+  canvasColor3   String?
+  gradientAngle  Int      @default(145)
+  updatedAt      DateTime @updatedAt
 }

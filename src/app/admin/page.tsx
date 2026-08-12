@@ -17,34 +17,63 @@ import { UserAvatar } from "@/components/user-avatar";
 export default async function AdminDashboardPage() {
   await requireAdmin();
 
-  const [users, items, lostItems, foundItems, pendingItems] = await Promise.all([
+  const [
+    users,
+    items,
+    lostItems,
+    foundItems,
+    pendingItems,
+    recentItems,
+    recentClaims,
+    recentApproved,
+    recentReturned,
+  ] = await Promise.all([
     prisma.user.count(),
     prisma.item.count(),
     prisma.item.count({ where: { type: "lost" } }),
     prisma.item.count({ where: { type: "found" } }),
     prisma.item.count({ where: { status: "pending" } }),
-  ]);
-  const [recentItems, recentClaims, recentApproved, recentReturned] = await Promise.all([
     prisma.item.findMany({
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { name: true } } },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        createdAt: true,
+        user: { select: { name: true } },
+      },
       take: 4,
     }),
     prisma.claim.findMany({
       orderBy: { createdAt: "desc" },
-      include: { claimant: { select: { name: true } }, item: { select: { title: true } } },
+      select: {
+        id: true,
+        createdAt: true,
+        claimant: { select: { name: true } },
+        item: { select: { title: true } },
+      },
       take: 3,
     }),
     prisma.item.findMany({
       where: { status: "approved" },
       orderBy: { updatedAt: "desc" },
-      include: { user: { select: { name: true } } },
+      select: {
+        id: true,
+        title: true,
+        updatedAt: true,
+        user: { select: { name: true } },
+      },
       take: 3,
     }),
     prisma.item.findMany({
       where: { status: "returned" },
       orderBy: { updatedAt: "desc" },
-      include: { user: { select: { name: true } } },
+      select: {
+        id: true,
+        title: true,
+        updatedAt: true,
+        user: { select: { name: true } },
+      },
       take: 3,
     }),
   ]);
@@ -82,7 +111,7 @@ export default async function AdminDashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Admin dashboard</h1>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Admin dashboard</h1>
           <p className="text-sm text-muted-foreground">
             Monitor platform activity and moderate new submissions.
           </p>

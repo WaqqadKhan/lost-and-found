@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/session";
 import { deleteUserAdmin } from "@/app/actions/admin";
-import { Button } from "@/components/ui/button";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -11,23 +11,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageContent } from "@/components/motion-primitives";
 
 export default async function AdminUsersPage() {
   const session = await requireAdmin();
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      _count: {
-        select: { items: true },
-      },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      _count: { select: { items: true } },
     },
   });
 
   return (
-    <div className="space-y-6">
+    <PageContent className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Manage users</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">Manage users</h1>
         <p className="text-sm text-muted-foreground">
           Review accounts and remove users who should no longer access the system.
         </p>
@@ -63,12 +67,13 @@ export default async function AdminUsersPage() {
                     {user.id === session.user.id ? (
                       <span className="text-xs text-muted-foreground">Current admin</span>
                     ) : (
-                      <form action={deleteUserAdmin}>
-                        <input type="hidden" name="id" value={user.id} />
-                        <Button type="submit" variant="destructive" size="sm">
-                          Delete
-                        </Button>
-                      </form>
+                      <ConfirmDeleteButton
+                        label="Delete"
+                        title="Delete this user?"
+                        description="This permanently removes the account and related data."
+                        formAction={deleteUserAdmin}
+                        hiddenFields={{ id: user.id }}
+                      />
                     )}
                   </TableCell>
                 </TableRow>
@@ -77,6 +82,6 @@ export default async function AdminUsersPage() {
           </TableBody>
         </Table>
       </div>
-    </div>
+    </PageContent>
   );
 }

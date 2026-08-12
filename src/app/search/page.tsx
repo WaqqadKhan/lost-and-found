@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { SearchBar } from "@/components/search-bar";
 import { ItemCard } from "@/components/item-card";
-import Link from "next/link";
+import { SearchResults } from "@/components/search-results";
+import { SearchPagination } from "@/components/search-pagination";
+import { TagPill, FilterChip } from "@/components/filter-chip";
 import { QUICK_SEARCH_TAGS } from "@/lib/constants";
-import { X } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
+import { PageContent } from "@/components/motion-primitives";
 
 export default async function SearchPage({
   searchParams,
@@ -34,86 +36,84 @@ export default async function SearchPage({
   const perPage = 12;
 
   const filters: Record<string, unknown>[] = [];
-  if (keyword) {
-    filters.push({
-      title: {
-        contains: keyword,
-      },
-    });
-  }
-  if (category) {
-    filters.push({
-      category: {
-        equals: category,
-      },
-    });
-  }
-  if (location) {
-    filters.push({
-      location: {
-        contains: location,
-      },
-    });
-  }
-  if (type) {
-    filters.push({
-      type: {
-        equals: type,
-      },
-    });
-  }
+  if (keyword) filters.push({ title: { contains: keyword } });
+  if (category) filters.push({ category: { equals: category } });
+  if (location) filters.push({ location: { contains: location } });
+  if (type) filters.push({ type: { equals: type } });
 
-  const items = await prisma.item.findMany({
-    where: {
-      status: "approved",
-      ...(filters.length ? { AND: filters } : {}),
-    },
-    orderBy: { createdAt: sort === "oldest" ? "asc" : "desc" },
-    skip: (page - 1) * perPage,
-    take: perPage,
-  });
+  const where = {
+    status: "approved" as const,
+    ...(filters.length ? { AND: filters } : {}),
+  };
 
-  const total = await prisma.item.count({
-    where: {
-      status: "approved",
-      ...(filters.length ? { AND: filters } : {}),
-    },
-  });
+  const [items, total, locationGroups] = await Promise.all([
+    prisma.item.findMany({
+      where,
+      orderBy: { createdAt: sort === "oldest" ? "asc" : "desc" },
+      skip: (page - 1) * perPage,
+      take: perPage,
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        location: true,
+        category: true,
+        date: true,
+        createdAt: true,
+        image: true,
+        images: true,
+      },
+    }),
+    prisma.item.count({ where }),
+    prisma.item.groupBy({
+      by: ["location"],
+      where: { status: "approved" },
+      _count: { location: true },
+      orderBy: { _count: { location: "desc" } },
+      take: 12,
+    }),
+  ]);
+
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const from = total === 0 ? 0 : (page - 1) * perPage + 1;
   const to = Math.min(page * perPage, total);
-
-  const locationGroups = await prisma.item.groupBy({
-    by: ["location"],
-    where: { status: "approved" },
-    _count: { location: true },
-    orderBy: { _count: { location: "desc" } },
-    take: 12,
-  });
-
   const activeFilterCount = [keyword, category, location, type].filter(Boolean).length;
+
   const baseParams = new URLSearchParams();
   if (keyword) baseParams.set("keyword", keyword);
   if (category) baseParams.set("category", category);
   if (location) baseParams.set("location", location);
   if (type) baseParams.set("type", type);
   if (sort !== "newest") baseParams.set("sort", sort);
+
   const pageHref = (p: number) => {
     const q = new URLSearchParams(baseParams);
     if (p > 1) q.set("page", String(p));
     return `/search${q.toString() ? `?${q.toString()}` : ""}`;
   };
 
+  const filterHref = (omit: "keyword" | "category" | "location" | "type") => {
+    const q = new URLSearchParams();
+    if (omit !== "keyword" && keyword) q.set("keyword", keyword);
+    if (omit !== "category" && category) q.set("category", category);
+    if (omit !== "location" && location) q.set("location", location);
+    if (omit !== "type" && type) q.set("type", type);
+    if (sort !== "newest") q.set("sort", sort);
+    return `/search${q.toString() ? `?${q.toString()}` : ""}`;
+  };
+
+  const resultsKey = `${keyword}-${category}-${location}-${type}-${sort}-${page}`;
+
   return (
-    <div className="space-y-8">
+    <PageContent className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Search</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">Search</h1>
         <p className="text-sm text-muted-foreground">
           Browse approved listings. Leave fields blank to see the most recent posts.
         </p>
       </div>
 
-      <Card>
+      <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="text-base">Filters</CardTitle>
           <CardDescription>Keyword searches the title. Location uses a partial match.</CardDescription>
@@ -135,13 +135,9 @@ export default async function SearchPage({
           <h3 className="text-sm font-semibold text-muted-foreground">Popular searches</h3>
           <div className="flex flex-wrap gap-2">
             {QUICK_SEARCH_TAGS.map((tag) => (
-              <Link
-                key={tag}
-                href={`/search?keyword=${encodeURIComponent(tag)}`}
-                className="rounded-full border bg-muted px-3 py-1 text-sm hover:bg-muted/70"
-              >
+              <TagPill key={tag} href={`/search?keyword=${encodeURIComponent(tag)}`}>
                 {tag}
-              </Link>
+              </TagPill>
             ))}
           </div>
         </section>
@@ -151,13 +147,9 @@ export default async function SearchPage({
         <h3 className="text-sm font-semibold text-muted-foreground">Browse by Location</h3>
         <div className="flex flex-wrap gap-2">
           {locationGroups.map((group) => (
-            <Link
-              key={group.location}
-              href={`/search?location=${encodeURIComponent(group.location)}`}
-              className="rounded-full border bg-muted px-3 py-1 text-sm hover:bg-muted/70"
-            >
+            <TagPill key={group.location} href={`/search?location=${encodeURIComponent(group.location)}`}>
               {group.location} ({group._count.location})
-            </Link>
+            </TagPill>
           ))}
         </div>
       </section>
@@ -165,42 +157,14 @@ export default async function SearchPage({
       {activeFilterCount > 0 ? (
         <section className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            {keyword ? (
-              <Link
-                href={`/search?${new URLSearchParams({ ...(category && { category }), ...(location && { location }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
-                className="rounded-full bg-gray-100 px-3 py-1 text-sm"
-              >
-                <span className="inline-flex items-center gap-1">{keyword} <X className="size-3" /></span>
-              </Link>
-            ) : null}
-            {category ? (
-              <Link
-                href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(location && { location }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
-                className="rounded-full bg-gray-100 px-3 py-1 text-sm"
-              >
-                <span className="inline-flex items-center gap-1">{category} <X className="size-3" /></span>
-              </Link>
-            ) : null}
-            {type ? (
-              <Link
-                href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(category && { category }), ...(location && { location }), ...(sort !== "newest" && { sort }) }).toString()}`}
-                className="rounded-full bg-gray-100 px-3 py-1 text-sm"
-              >
-                <span className="inline-flex items-center gap-1">{type} <X className="size-3" /></span>
-              </Link>
-            ) : null}
-            {location ? (
-              <Link
-                href={`/search?${new URLSearchParams({ ...(keyword && { keyword }), ...(category && { category }), ...(type && { type }), ...(sort !== "newest" && { sort }) }).toString()}`}
-                className="rounded-full bg-gray-100 px-3 py-1 text-sm"
-              >
-                <span className="inline-flex items-center gap-1">{location} <X className="size-3" /></span>
-              </Link>
-            ) : null}
+            {keyword ? <FilterChip href={filterHref("keyword")} label={keyword} /> : null}
+            {category ? <FilterChip href={filterHref("category")} label={category} /> : null}
+            {type ? <FilterChip href={filterHref("type")} label={type} /> : null}
+            {location ? <FilterChip href={filterHref("location")} label={location} /> : null}
             {activeFilterCount >= 2 ? (
-              <Link href="/search" className="text-sm text-primary underline-offset-4 hover:underline">
+              <a href="/search" className="text-sm text-primary underline-offset-4 hover:underline">
                 Clear all filters
-              </Link>
+              </a>
             ) : null}
           </div>
         </section>
@@ -208,7 +172,7 @@ export default async function SearchPage({
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">
+          <h2 className="font-heading text-lg font-semibold">
             Results <span className="text-sm font-normal text-muted-foreground">({total})</span>
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -223,38 +187,18 @@ export default async function SearchPage({
             ctaHref="/search"
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((item) => (
-              <ItemCard key={item.id} item={item} />
-            ))}
-          </div>
+          <SearchResults resultsKey={resultsKey}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((item, i) => (
+                <ItemCard key={item.id} item={item} index={i} />
+              ))}
+            </div>
+          </SearchResults>
         )}
         {totalPages > 1 ? (
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            <Link
-              href={pageHref(Math.max(1, page - 1))}
-              className="rounded-md border px-3 py-1 text-sm disabled:pointer-events-none"
-            >
-              Previous
-            </Link>
-            {Array.from({ length: totalPages }).slice(0, 7).map((_, idx) => {
-              const p = idx + 1;
-              return (
-                <Link
-                  key={p}
-                  href={pageHref(p)}
-                  className={`rounded-md border px-3 py-1 text-sm ${p === page ? "bg-primary text-primary-foreground" : ""}`}
-                >
-                  {p}
-                </Link>
-              );
-            })}
-            <Link href={pageHref(Math.min(totalPages, page + 1))} className="rounded-md border px-3 py-1 text-sm">
-              Next
-            </Link>
-          </div>
+          <SearchPagination page={page} totalPages={totalPages} pageHref={pageHref} />
         ) : null}
       </section>
-    </div>
+    </PageContent>
   );
 }

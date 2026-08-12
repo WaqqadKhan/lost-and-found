@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { FancySelect } from "@/components/ui/select";
 import { CAMPUS_LOCATIONS, ITEM_CATEGORIES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 export function SearchBar({
   defaultKeyword = "",
@@ -21,6 +24,7 @@ export function SearchBar({
   targetPath?: string;
 }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [keyword, setKeyword] = useState(defaultKeyword);
   const [category, setCategory] = useState(defaultCategory);
   const [location, setLocation] = useState(defaultLocation);
@@ -49,86 +53,99 @@ export function SearchBar({
       if (sort && sort !== "newest") params.set("sort", sort);
       const query = params.toString();
       const href = query ? `${targetPath}?${query}` : targetPath;
-      router.replace(href, { scroll: false });
-    }, 300);
+      startTransition(() => {
+        router.replace(href, { scroll: false });
+      });
+    }, 180);
 
     return () => clearTimeout(timer);
   }, [keyword, category, location, type, sort, targetPath, router, hasInteracted]);
 
   return (
-    <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-      <div className="min-w-0 flex-1 space-y-1">
-        <Input
-          className="h-10"
-          placeholder="Search by title..."
-          value={keyword}
-          onChange={(e) => {
-            setHasInteracted(true);
-            setKeyword(e.target.value);
-          }}
-        />
+    <div className="relative space-y-2">
+      <div
+        className={cn(
+          "flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end",
+          isPending && "opacity-80",
+        )}
+      >
+        <div className="min-w-0 flex-1 space-y-1">
+          <Input
+            className="h-10 rounded-xl"
+            placeholder="Search by title..."
+            value={keyword}
+            onChange={(e) => {
+              setHasInteracted(true);
+              setKeyword(e.target.value);
+            }}
+          />
+        </div>
+        <div className="w-full space-y-1 sm:w-48">
+          <FancySelect
+            value={category}
+            onValueChange={(v) => {
+              setHasInteracted(true);
+              setCategory(v);
+            }}
+            placeholder="All categories"
+            options={[
+              { value: "", label: "All categories" },
+              ...ITEM_CATEGORIES.map((c) => ({ value: c, label: c })),
+            ]}
+          />
+        </div>
+        <div className="w-full space-y-1 sm:w-40">
+          <FancySelect
+            value={type}
+            onValueChange={(v) => {
+              setHasInteracted(true);
+              setType(v);
+            }}
+            placeholder="All types"
+            options={[
+              { value: "", label: "All types" },
+              { value: "lost", label: "Lost" },
+              { value: "found", label: "Found" },
+            ]}
+          />
+        </div>
+        <div className="min-w-0 flex-1 space-y-1">
+          <Input
+            className="h-10 rounded-xl"
+            placeholder="Location"
+            value={location}
+            list="campus-locations"
+            onChange={(e) => {
+              setHasInteracted(true);
+              setLocation(e.target.value);
+            }}
+          />
+          <datalist id="campus-locations">
+            {CAMPUS_LOCATIONS.map((place) => (
+              <option key={place} value={place} />
+            ))}
+          </datalist>
+        </div>
+        <div className="w-full space-y-1 sm:w-44">
+          <FancySelect
+            value={sort}
+            onValueChange={(v) => {
+              setHasInteracted(true);
+              setSort(v);
+            }}
+            options={[
+              { value: "newest", label: "Newest first" },
+              { value: "oldest", label: "Oldest first" },
+            ]}
+          />
+        </div>
       </div>
-      <div className="w-full space-y-1 sm:w-44">
-        <select
-          value={category}
-          onChange={(e) => {
-            setHasInteracted(true);
-            setCategory(e.target.value);
-          }}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-        >
-          <option value="">All categories</option>
-          {ITEM_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="w-full space-y-1 sm:w-40">
-        <select
-          value={type}
-          onChange={(e) => {
-            setHasInteracted(true);
-            setType(e.target.value);
-          }}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-        >
-          <option value="">All Types</option>
-          <option value="lost">Lost</option>
-          <option value="found">Found</option>
-        </select>
-      </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <Input
-          className="h-10"
-          placeholder="Location"
-          value={location}
-          list="campus-locations"
-          onChange={(e) => {
-            setHasInteracted(true);
-            setLocation(e.target.value);
-          }}
-        />
-        <datalist id="campus-locations">
-          {CAMPUS_LOCATIONS.map((place) => (
-            <option key={place} value={place} />
-          ))}
-        </datalist>
-      </div>
-      <div className="w-full space-y-1 sm:w-40">
-        <select
-          value={sort}
-          onChange={(e) => {
-            setHasInteracted(true);
-            setSort(e.target.value);
-          }}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 appearance-none"
-        >
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-        </select>
-      </div>
+      {isPending ? (
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground" role="status">
+          <Loader2 className="size-3.5 animate-spin text-primary" aria-hidden />
+          Updating results…
+        </p>
+      ) : null}
     </div>
   );
 }

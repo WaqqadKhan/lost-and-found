@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { StatusBadge } from "@/components/badges";
+import { ClaimStatusBadge } from "@/components/badges";
 import { formatTimeAgo } from "@/lib/time";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -22,7 +22,7 @@ export default async function MyClaimsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">My Claims</h1>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">My Claims</h1>
           <p className="text-sm text-muted-foreground">Track claim requests you submitted.</p>
         </div>
         <Link href="/dashboard" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
@@ -39,16 +39,16 @@ export default async function MyClaimsPage() {
       ) : (
         <div className="space-y-4">
           {claims.map((claim) => (
-            <Card key={claim.id}>
+            <Card key={claim.id} className="shadow-card">
               <CardHeader>
                 <CardTitle className="text-base">{claim.item.title}</CardTitle>
                 <CardDescription>{formatTimeAgo(claim.createdAt)}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <StatusBadge status={claim.status} />
+                <ClaimStatusBadge status={claim.status} />
                 <p>{claim.message}</p>
                 {claim.status === "accepted" ? (
-                  <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                  <div className="rounded-md border border-status-claimed-border bg-status-claimed/40 p-3 text-xs text-status-claimed-fg">
                     <p className="font-medium">Owner contact:</p>
                     <p>{claim.item.user.name}</p>
                     <p>{claim.item.user.email}</p>

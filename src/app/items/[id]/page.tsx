@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth/next";
-import { ArrowDown, Mail, Phone, User } from "lucide-react";
+import { ArrowDown, Clock, Mail, Phone, User } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { findPossibleMatches } from "@/lib/matching";
@@ -13,7 +13,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { StatusBadge, TypeBadge } from "@/components/badges";
+import { StatusBadge, TypeBadge, ClaimStatusBadge, ExpiredBadge } from "@/components/badges";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
 import { ItemCard } from "@/components/item-card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,6 +35,7 @@ import { shouldCelebrateReunionConfetti } from "@/lib/reunion";
 import { ReunionConfetti } from "@/components/reunion-confetti";
 import { SuccessStoryPromptDialog } from "@/components/success-story-prompt-dialog";
 import { ClaimVerificationReview } from "@/components/claim-verification-review";
+import { PageContent } from "@/components/motion-primitives";
 
 export default async function ItemDetailPage({ params }: { params: { id: string } }) {
   const item = await prisma.item.findUnique({
@@ -118,32 +129,51 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
   if (!imageList.length && item.image) imageList = [item.image];
 
   return (
-    <div className="space-y-10">
+    <>
       <ReunionConfetti itemId={item.id} enabled={celebrate} />
       <SuccessStoryPromptDialog itemId={item.id} defaultOpen={promptStory} />
+      <PageContent className="space-y-10 pb-20 sm:pb-10">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/search">Search</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href={`/search?category=${encodeURIComponent(item.category)}`}>{item.category}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{item.title}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
-      <div className="rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-        Posted {postedAgo}
-      </div>
+      <Alert>
+        <Clock className="size-4" />
+        <AlertTitle>Posted {postedAgo}</AlertTitle>
+        <AlertDescription>{item.location} · {itemDateLabel}</AlertDescription>
+      </Alert>
+
       {stale ? (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          This item was posted over a month ago and may no longer be available.
-        </div>
+        <Alert variant="warning">
+          <AlertTitle>This listing may be stale</AlertTitle>
+          <AlertDescription>
+            Posted over a month ago — the item may no longer be available. <ExpiredBadge />
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {isOwner && pendingClaimsCount > 0 ? (
-        <div className="border-l-4 border-yellow-500 bg-yellow-50 p-4 text-sm text-yellow-950">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold">{pendingClaimsCount} new claim(s) waiting for your review</p>
-              <p className="text-xs text-yellow-900/80">Review the claims section below and accept the best match.</p>
-            </div>
-            <Link href="#claims" className="inline-flex items-center gap-1 text-yellow-900 underline-offset-4 hover:underline">
-              <span className="text-xs font-semibold">Go to claims</span>
-              <ArrowDown className="size-4 shrink-0" aria-hidden />
+        <Alert variant="warning">
+          <AlertTitle>{pendingClaimsCount} new claim(s) waiting for review</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+            <span>Review the claims section below and accept the best match.</span>
+            <Link href="#claims" className="inline-flex items-center gap-1 font-semibold underline-offset-4 hover:underline">
+              Go to claims <ArrowDown className="size-4" aria-hidden />
             </Link>
-          </div>
-        </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
@@ -161,7 +191,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight">{item.title}</h1>
+            <h1 className="font-heading text-3xl font-semibold tracking-tight">{item.title}</h1>
             <p className="text-sm text-muted-foreground">
               {item.category} · {item.location} · {itemDateLabel}
             </p>
@@ -205,10 +235,10 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
       </div>
 
       {showClaimsSection ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-          <p className="font-semibold">You have {item.claims.length} claim(s) on this item!</p>
-          <p className="text-xs text-amber-900/80">Review carefully before accepting — accepting automatically marks the item returned.</p>
-        </div>
+        <Alert variant="warning">
+          <AlertTitle>You have {item.claims.length} claim(s) on this item</AlertTitle>
+          <AlertDescription>Review carefully — accepting automatically marks the item returned.</AlertDescription>
+        </Alert>
       ) : null}
 
       {showClaimsSection ? (
@@ -223,7 +253,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
               <Card
                 key={claim.id}
                 className={cn(
-                  claim.status === "accepted" && "border-emerald-300 bg-emerald-50/40",
+                  claim.status === "accepted" && "border-status-claimed-border bg-status-claimed/30",
                   claim.status === "rejected" && "opacity-60",
                 )}
               >
@@ -231,12 +261,14 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                   <div className="flex flex-wrap items-center gap-2">
                     <UserAvatar name={claim.claimant.name} className="size-7 text-[10px]" />
                     <p className="font-medium">{claim.claimant.name}</p>
-                    <StatusBadge status={claim.status} />
+                    <ClaimStatusBadge status={claim.status} />
                     {item.type === "found" && item.verificationQuestion ? (
                       <span
                         className={cn(
-                          "rounded-full px-2 py-0.5 text-xs",
-                          claim.verificationMatched ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800",
+                          "rounded-full border px-2 py-0.5 text-xs",
+                          claim.verificationMatched
+                            ? "border-status-approved-border bg-status-approved text-status-approved-fg"
+                            : "border-status-pending-border bg-status-pending text-status-pending-fg",
                         )}
                       >
                         {claim.verificationMatched ? "Verified" : "Unverified"}
@@ -258,7 +290,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
                       <form action={decideClaim}>
                         <input type="hidden" name="claimId" value={claim.id} />
                         <input type="hidden" name="decision" value="accepted" />
-                        <Button type="submit" size="sm" className="bg-emerald-600 hover:bg-emerald-600/90">
+                        <Button type="submit" size="sm" className="bg-primary hover:bg-primary/90">
                           Accept
                         </Button>
                       </form>
@@ -286,10 +318,10 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
       {showContacts ? (
         <div className="space-y-3">
           {showReunionContacts ? (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-              <p className="font-semibold">Item reunited! Contact each other to arrange the handover.</p>
-              <p className="text-xs text-emerald-900/80">Please coordinate safely on campus and confirm details before meeting.</p>
-            </div>
+            <Alert variant="success">
+              <AlertTitle>Item reunited!</AlertTitle>
+              <AlertDescription>Contact each other to arrange the handover. Coordinate safely on campus.</AlertDescription>
+            </Alert>
           ) : null}
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -443,13 +475,12 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
         {isLoggedIn ? (
           <form action={postComment} className="space-y-2 rounded-lg border p-3">
             <input type="hidden" name="itemId" value={item.id} />
-            <textarea
+            <Textarea
               name="text"
               required
-              className="min-h-20 w-full rounded-md border px-3 py-2 text-sm"
               placeholder="I saw a similar item near the cafeteria..."
             />
-            <button className="rounded bg-primary px-3 py-1 text-sm text-primary-foreground">Post Comment</button>
+            <Button type="submit" size="sm">Post Comment</Button>
           </form>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -477,6 +508,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
           </div>
         )}
       </section>
-    </div>
+    </PageContent>
+    </>
   );
 }

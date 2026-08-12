@@ -1,20 +1,21 @@
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
+import { useState } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FancySelect } from "@/components/ui/select";
 import { updateItemAdmin, type AdminItemFormState } from "@/app/actions/admin";
 import { ITEM_CATEGORIES } from "@/lib/constants";
-import { nativeSelectClassName } from "@/lib/select-styles";
 import { cn } from "@/lib/utils";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" loading={pending}>
       {pending ? "Saving…" : "Save changes"}
     </Button>
   );
@@ -34,10 +35,12 @@ export type AdminEditItemInitial = {
 
 export function AdminEditItemForm({ item }: { item: AdminEditItemInitial }) {
   const [state, formAction] = useFormState(updateItemAdmin, initialState);
+  const [category, setCategory] = useState(item.category);
 
   return (
     <form action={formAction} className="mx-auto max-w-xl space-y-4">
       <input type="hidden" name="id" value={item.id} />
+      <input type="hidden" name="category" value={category} />
 
       {state.error ? (
         <p className="text-sm text-destructive" role="alert">
@@ -63,18 +66,12 @@ export function AdminEditItemForm({ item }: { item: AdminEditItemInitial }) {
 
       <div className="space-y-2">
         <Label htmlFor="category">Category</Label>
-        <select
+        <FancySelect
           id="category"
-          name="category"
-          defaultValue={item.category}
-          className={nativeSelectClassName}
-        >
-          {ITEM_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+          value={category}
+          onValueChange={setCategory}
+          options={ITEM_CATEGORIES.map((c) => ({ value: c, label: c }))}
+        />
       </div>
 
       <div className="space-y-2">

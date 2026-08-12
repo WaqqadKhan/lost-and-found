@@ -22,18 +22,26 @@ export async function findPossibleMatches(
   const cat = category.toLowerCase();
   const loc = location.toLowerCase();
 
+  // Keep payload lean — matching only needs title/category/location/type + a thumbnail
   const candidates = await prisma.item.findMany({
     where: {
       id: { not: itemId },
       status: "approved",
       type: opposite,
     },
-    include: {
-      user: {
-        select: { name: true },
-      },
+    select: {
+      id: true,
+      title: true,
+      type: true,
+      location: true,
+      category: true,
+      date: true,
+      createdAt: true,
+      image: true,
+      images: true,
+      user: { select: { name: true } },
     },
-    take: 80,
+    take: 40,
     orderBy: { createdAt: "desc" },
   });
 

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { PageContent } from "@/components/motion-primitives";
 
 export default async function DashboardPage() {
   const session = await requireUser();
@@ -34,9 +35,9 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="space-y-8">
+    <PageContent className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Welcome back, <span className="font-medium text-foreground">{session.user.name}</span>
           . Choose an action below or review your stats.
@@ -45,7 +46,7 @@ export default async function DashboardPage() {
 
       {isAdmin && pending > 0 ? (
         <div
-          className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-950 dark:border-red-900 dark:bg-red-950/40 dark:text-red-50 sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-3 rounded-xl border border-status-lost-border bg-status-lost p-4 text-sm text-status-lost-fg sm:flex-row sm:items-center sm:justify-between"
           role="status"
         >
           <p className="font-medium">
@@ -53,7 +54,7 @@ export default async function DashboardPage() {
           </p>
           <Link
             href="/admin/items"
-            className={cn(buttonVariants({ variant: "default", size: "sm" }), "shrink-0 bg-red-600 hover:bg-red-700")}
+            className={cn(buttonVariants({ variant: "default", size: "sm" }), "shrink-0")}
           >
             Review now
           </Link>
@@ -118,7 +119,7 @@ export default async function DashboardPage() {
           href="/dashboard/add?type=lost"
           className={cn(
             buttonVariants({ variant: "secondary" }),
-            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left",
+            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left shadow-card transition-shadow hover:shadow-card-hover",
           )}
         >
           <span className="text-base font-semibold">Report lost item</span>
@@ -130,7 +131,7 @@ export default async function DashboardPage() {
           href="/dashboard/add?type=found"
           className={cn(
             buttonVariants({ variant: "secondary" }),
-            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left",
+            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left shadow-card transition-shadow hover:shadow-card-hover",
           )}
         >
           <span className="text-base font-semibold">Report found item</span>
@@ -142,7 +143,7 @@ export default async function DashboardPage() {
           href="/dashboard/my-items"
           className={cn(
             buttonVariants({ variant: "outline" }),
-            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left",
+            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left shadow-card transition-shadow hover:shadow-card-hover",
           )}
         >
           <span className="text-base font-semibold">My items</span>
@@ -154,7 +155,7 @@ export default async function DashboardPage() {
           href="/dashboard/profile"
           className={cn(
             buttonVariants({ variant: "outline" }),
-            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left",
+            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left shadow-card transition-shadow hover:shadow-card-hover",
           )}
         >
           <span className="text-base font-semibold">Profile</span>
@@ -166,7 +167,7 @@ export default async function DashboardPage() {
           href="/dashboard/my-claims"
           className={cn(
             buttonVariants({ variant: "outline" }),
-            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left",
+            "h-auto min-h-28 flex-col items-start justify-center gap-1 whitespace-normal px-4 py-4 text-left shadow-card transition-shadow hover:shadow-card-hover",
           )}
         >
           <span className="text-base font-semibold">My Claims</span>
@@ -175,6 +176,6 @@ export default async function DashboardPage() {
           </span>
         </Link>
       </div>
-    </div>
+    </PageContent>
   );
 }

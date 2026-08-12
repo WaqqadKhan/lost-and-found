@@ -18,8 +18,8 @@ export default async function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
-          <p className="text-sm text-foreground/85">
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Notifications</h1>
+          <p className="text-sm text-muted-foreground">
             Updates for approvals, rejections, and claim activity.
           </p>
         </div>
@@ -45,8 +45,8 @@ export default async function NotificationsPage() {
               <li
                 key={n.id}
                 className={cn(
-                  "rounded-xl border bg-card p-4 shadow-sm",
-                  !n.read && "border-sky-200 bg-sky-50/80 dark:border-sky-900 dark:bg-sky-950/40",
+                  "rounded-xl border bg-card p-4 shadow-card",
+                  !n.read && "border-status-returned-border bg-status-returned/40",
                 )}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -60,8 +60,8 @@ export default async function NotificationsPage() {
                         {n.message}
                       </button>
                     </form>
-                    <p className="text-xs text-foreground/75">{when}</p>
-                    <p className="text-xs text-foreground/75">
+                    <p className="text-xs text-muted-foreground">{when}</p>
+                    <p className="text-xs text-muted-foreground">
                       Status: {n.read ? "Read" : "Unread"} · Type: {n.type}
                     </p>
                     {n.itemId ? (
